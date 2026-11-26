@@ -4,7 +4,11 @@ const path = require('path'), http = require('http'), fs = require('fs'), assert
 const root = path.join(__dirname, '..');
 const types = { '.html': 'text/html', '.js': 'text/javascript', '.png': 'image/png', '.woff2': 'font/woff2', '.webmanifest': 'application/manifest+json' };
 (async () => {
+  // Stand-ins for the two apps the shell frames, served from memory: one text field each, noting the resume signals and keys they get and whether the field lost focus while its tab was still shown.
+  const standIn = name => '<!doctype html><title>' + name + '</title><body><input id="f"><script>window.seen = 0; window.keys = ""; document.addEventListener("visibilitychange", () => window.seen++); document.addEventListener("keydown", e => window.keys += e.key); f.addEventListener("blur", () => window.shownAtBlur = frameElement.classList.contains("on"));</scr' + 'ipt>';
   const server = http.createServer((req, res) => {
+    const app = /^\/(Docket|ledger)\/$/.exec(req.url);
+    if (app) { res.writeHead(200, { 'Content-Type': 'text/html' }); res.end(standIn(app[1])); return; }
     const file = path.join(root, decodeURIComponent(req.url.split('?')[0].replace(/\/$/, '/index.html')));
     if (!file.startsWith(root) || !fs.existsSync(file)) { res.writeHead(404); res.end(); return; }
     res.writeHead(200, { 'Content-Type': types[path.extname(file)] || 'application/octet-stream' }); fs.createReadStream(file).pipe(res);
@@ -50,6 +54,7 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.png': 'image/p
     await page.locator('[data-a="note"][data-role="C"]').click();
     assert.strictEqual(await page.locator('.sheet').getAttribute('aria-modal'), 'true');
     assert.ok(await page.evaluate(() => document.querySelector('main').inert), 'page behind the dialog is inert');
+    assert.ok(await page.evaluate(() => document.querySelector('.strip').inert), 'the strip is inert behind the dialog too');
     await page.locator('#noteText').fill('Note 2\nLine 2');
     await shot('-note');
     await page.locator('[data-a="sendNote"]').click();
@@ -61,8 +66,8 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.png': 'image/p
     // Nothing overflows sideways.
     const over = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     assert.ok(over <= 0, 'no sideways scroll (' + over + ')');
-    // Every control is at least 44 px high on a phone, 40 px with a mouse.
-    const small = await page.evaluate(min => [...document.querySelectorAll('button,a.btn,a.tbtn')].filter(b => b.getBoundingClientRect().height < min).map(b => b.className + ':' + b.getBoundingClientRect().height), v.w < 900 ? 44 : 40);
+    // Every control is at least 44 px on its shorter side on a phone, 40 px with a mouse.
+    const small = await page.evaluate(min => [...document.querySelectorAll('button,a.btn,a.tbtn')].map(b => [b, Math.min(b.getBoundingClientRect().width, b.getBoundingClientRect().height)]).filter(x => x[1] < min).map(x => (x[0].className || x[0].textContent) + ':' + x[1]), v.w < 900 ? 44 : 40);
     assert.deepStrictEqual(small, [], 'control sizes');
     // Colour pairs from the tokens: text needs 4.5:1, borders and focus rings 3:1.
     const ratios = await page.evaluate(() => {
@@ -77,8 +82,59 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.png': 'image/p
     ratios.ui.forEach(r => assert.ok(r[1] >= 3, v.name + ' control contrast ' + r));
     console.log(v.name, 'text', ratios.text.map(r => r[0] + ' ' + r[1].toFixed(2)).join(', '), '| ui', ratios.ui.map(r => r[0] + ' ' + r[1].toFixed(2)).join(', '));
     await shot('-end');
+    // A tab's frame fills the window under the strip.
+    await page.locator('.strip [data-v="docket"]').click();
+    const box = await page.evaluate(() => { const r = document.querySelector('iframe.on').getBoundingClientRect(); return [r.left, r.top, r.right, r.bottom, document.querySelector('.strip').getBoundingClientRect().bottom]; });
+    const under = v.w < 900 ? 45 : 41;
+    assert.deepStrictEqual(box, [0, under, v.w, v.h, under], v.name + ' frame fills the window under the strip');
     await page.close();
   }
+  // The shell on a phone with touch: the strip and a frame without and with a notch, then the tabs.
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true });
+  const shell = await ctx.newPage(), cdp = await ctx.newCDPSession(shell);
+  shell.on('pageerror', e => errors.push('shell: ' + e.message));
+  await shell.goto(base + '#demo'); await shell.waitForSelector('.sec');
+  const edges = () => shell.evaluate(() => { const r = s => document.querySelector(s).getBoundingClientRect(), f = document.querySelector('iframe.on'); return { strip: r('.strip').bottom, head: r('header.top').top, headEnd: r('header.top').bottom, main: r('main').top, frame: f && [r('iframe.on').top, r('iframe.on').bottom] }; });
+  const tabTo = v => shell.locator('.strip [data-v="' + v + '"]').click();
+  const inTab = (name, fn) => shell.frames().find(f => new URL(f.url()).pathname === '/' + name + '/').evaluate(fn);
+  const look = () => ({ text: document.querySelector('#f').value, body: document.activeElement === document.body, keys: window.keys, seen: window.seen, width: frameElement.getBoundingClientRect().width });
+  assert.strictEqual(await shell.locator('iframe').count(), 0, 'no frame before a tab is opened');
+  await tabTo('docket');
+  assert.strictEqual(await shell.locator('iframe').count(), 1, 'the frame is made when its tab is first opened');
+  const state = () => shell.evaluate(() => ({ on: [...document.querySelectorAll('iframe.on')].map(f => f.title).join(), current: [...document.querySelectorAll('.strip [aria-current=page]')].map(b => b.dataset.v).join(), hq: getComputedStyle(document.querySelector('.app')).visibility, plain: [...document.querySelectorAll('iframe')].every(f => !f.hasAttribute('sandbox') && !f.hasAttribute('allow')) }));
+  assert.deepStrictEqual(await state(), { on: 'Docket', current: 'docket', hq: 'hidden', plain: true }, 'on the Docket tab only its frame shows, its tab is marked, HQ is hidden, and the frame has no sandbox or allow attribute');
+  let e = await edges();
+  assert.deepStrictEqual([e.strip, e.frame], [45, [45, 844]], 'without a notch the strip ends at 45 px and the frame runs from there to the bottom');
+  await cdp.send('Emulation.setSafeAreaInsetsOverride', { insets: { top: 47, bottom: 34 } });
+  e = await edges();
+  assert.deepStrictEqual([e.strip, e.frame], [92, [92, 810]], 'with a notch the strip ends at 92 px and the frame runs from there to 810 px');
+  await shell.frameLocator('iframe[title="Docket"]').locator('#f').click();
+  await shell.keyboard.type('abc');
+  // Chosen as a finger chooses it on a phone, where a tap leaves focus where it was: the tab being left gives its focus up by itself, before it is hidden.
+  const left = await shell.evaluate(() => { document.querySelector('.strip [data-v="ledger"]').click(); return document.querySelector('iframe[title="Docket"]').contentWindow.shownAtBlur; });
+  assert.strictEqual(left, true, 'leaving a tab takes focus off its field first');
+  await shell.waitForFunction(() => { const f = document.querySelector('iframe[title="Ledger"]'); return f.contentDocument.querySelector('#f') && f.contentDocument.hasFocus(); });
+  await shell.keyboard.type('xy');
+  assert.deepStrictEqual(await inTab('ledger', look), { text: '', body: true, keys: 'xy', seen: 0, width: 390 }, 'keys typed on the Ledger tab go to its page, not to a field');
+  assert.deepStrictEqual(await inTab('Docket', look), { text: 'abc', body: true, keys: 'abc', seen: 0, width: 390 }, 'the tab that was left keeps its text and its size, loses focus and gets no keys');
+  await tabTo('docket');
+  assert.deepStrictEqual(await inTab('Docket', look), { text: 'abc', body: true, keys: 'abc', seen: 1, width: 390 }, 'back on its tab an app is told once that it is on screen again, and no field takes focus');
+  await tabTo('hq');
+  assert.ok(await shell.evaluate(() => document.activeElement.dataset.v === 'hq' && location.hash === '#demo') && await shell.locator('#h-needs').isVisible(), 'going to HQ focuses its tab button, and the address and sample data stay');
+  assert.deepStrictEqual(await state(), { on: '', current: 'hq', hq: 'visible', plain: true }, 'back on HQ no frame shows and the HQ tab is marked');
+  e = await edges();
+  assert.ok(e.head === e.strip && e.main === e.headEnd, 'on HQ the header starts under the strip and the page under the header');
+  await shell.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  e = await edges();
+  assert.ok(await shell.evaluate(() => scrollY > 0) && e.head === e.strip, 'scrolled to the end, the header stays under the strip');
+  // A dialog asked for while an HQ field has focus is drawn only when the field loses it. Leaving HQ first must not draw it behind the tab.
+  await shell.locator('[data-a="toggle"][data-id^="need:"]').first().click();
+  await shell.evaluate(() => { document.querySelector('[data-note]').focus(); document.querySelector('[data-a="note"]').click(); document.querySelector('.strip [data-v="docket"]').click(); });
+  await shell.waitForTimeout(500);
+  assert.ok(await shell.evaluate(() => !document.querySelector('.strip').inert && !document.querySelector('.sheet')), 'a dialog not yet drawn is dropped when HQ is left, so the strip stays usable');
+  await tabTo('hq');
+  assert.strictEqual((await state()).current, 'hq', 'and HQ can be reached again');
+  await ctx.close();
   // The connection form refuses a malformed code and accepts a well-formed one.
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
   await page.route('https://script.google.com/**', r => r.fulfill({ contentType: 'application/json', body: JSON.stringify({ ok: false, error: 'Wrong key', auth: true }) }));

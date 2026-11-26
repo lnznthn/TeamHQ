@@ -11,6 +11,16 @@ The data lives in a Google Sheet that you own, called the Team Board. Each assis
 - **Runs today** shows each expected run as reported, due, late or not watched.
 - **Dial** sets how much the team may notify, using the words listed in the Settings tab. The assistants read it from the sheet.
 
+## Tabs
+
+A strip at the top holds three tabs: HQ, Docket and Ledger. HQ is this app. Docket and Ledger are two separate apps served from the same site (`../Docket/` and `../ledger/`); each opens in a frame the first time its tab is chosen and stays loaded after that. Team HQ opens on HQ every time it starts: no tab is remembered, and the address does not change with the tab.
+
+Choosing a tab takes focus out of the tab being left, so its keyboard closes, and gives focus to the chosen page without putting it in a field. An app that was already loaded is told that it is back on screen, so it syncs. While a dialog is open in HQ, the strip is inert like the page behind the dialog.
+
+Each of the three apps keeps its own data and its own connection. Inside Team HQ, Docket and Ledger read the storage this browser or Home Screen icon already holds for them; where there is none, each tab asks for its own connection code once. On an iPhone a Home Screen icon has storage of its own, so the Team HQ icon needs each app's code once.
+
+The link in HQ that opened the task list is gone, because the Docket tab replaces it. The `Task app` row of the Settings tab is no longer read by the app and can stay where it is. A copy hosted without the two other apps shows the host's not-found page in their tabs.
+
 ## Set up
 
 1. Create a Google Sheet. Open **Extensions > Apps Script**, replace the editor's contents with `apps-script/Code.gs`, and save.
@@ -33,7 +43,7 @@ To host your own copy, fork this repository and turn on GitHub Pages for the `ma
 | `Out_<name>` (one per assistant) | That assistant | Reports, handoffs, replies and one `heartbeat` row per scheduled run. Rows are appended and never edited. |
 | `Out_HQ` | The app | The owner's approvals, declines and notes. |
 | `Expected` | The owner | The runs the watchdog looks for. |
-| `Settings` | The owner | The roles, and for each its name, label, room and desk links; the owner's name; the dial and its words; quiet hours and the daily alert cap. New rows are always added at the end. |
+| `Settings` | The owner | The roles, and for each its name, label, room and desk links; the owner's name; the dial and its words; quiet hours and the daily alert cap. New rows are always added at the end. The `Task app` row is unused since version 1.3.0. |
 | `Watchdog` | The script | One row per run per day: reported, late, and when an alert went out. |
 | `Digest` | The script | Only what is still open: requests waiting on the owner, handoffs waiting for each assistant, each assistant's latest report, and late runs. Assistants read this tab so they never load the full history. |
 
