@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#FAFAFA" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0D0D0D" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Team HQ">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" href="icons/icon-192.png">
+<title>Team HQ</title>
+<style>
+@font-face{font-family:'Bebas Neue';src:url(fonts/bebas-neue-latin-400-normal.woff2) format('woff2');font-weight:400;font-display:swap}
+@font-face{font-family:'Geist';src:url(fonts/geist-sans-latin-400-normal.woff2) format('woff2');font-weight:400;font-display:swap}
+@font-face{font-family:'Geist';src:url(fonts/geist-sans-latin-500-normal.woff2) format('woff2');font-weight:500;font-display:swap}
+@font-face{font-family:'Geist';src:url(fonts/geist-sans-latin-600-normal.woff2) format('woff2');font-weight:600;font-display:swap}
+/* Design tokens. Light here, dark for a dark device. Rules below use only tokens. */
+:root{--bg:#FAFAFA;--text:#0D0D0D;--muted:#5C5C5C;--line:rgba(0,0,0,.16);--edge:#6E6E6E;--field:#FFFFFF;--raise:#FFFFFF;--raise-edge:#0D0D0D;--accent:#FFD400;--accent-edge:#9A8000;--on-accent:#0D0D0D;--attn:#7A6000;--danger:#B3261E;--scrim:rgba(0,0,0,.5);--sec:var(--bg);
+  --sans:'Geist',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;--display:'Bebas Neue','Arial Narrow','Roboto Condensed',Impact,sans-serif;color-scheme:light dark}
+@media (prefers-color-scheme:dark){:root{--bg:#0D0D0D;--text:#FAFAFA;--muted:#A3A3A3;--line:rgba(255,255,255,.14);--edge:#8A8A8A;--field:#161616;--raise:#242424;--raise-edge:#000000;--attn:#FFD400;--danger:#FF6B6B;--scrim:rgba(0,0,0,.6)}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;border-radius:0}
+html,body{margin:0;background:var(--bg);color:var(--text);font:400 15px/1.4 var(--sans);-webkit-text-size-adjust:100%}
+body{overscroll-behavior:none}
+b{font-weight:600}
+h1,h2,p{margin:0;font-weight:400}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer;margin:0}
+svg{flex:none;display:block}
+:focus-visible{outline:2px solid var(--text);outline-offset:2px}
+input:focus-visible,textarea:focus-visible{outline-offset:-2px}
+.app{max-width:720px;margin:0 auto;min-height:100dvh;display:flex;flex-direction:column;padding:env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left)}
+header.top{display:flex;align-items:center;gap:8px;min-height:64px;padding:8px 8px 8px 16px;position:sticky;top:env(safe-area-inset-top);background:var(--bg);z-index:5}
+header.top h1{flex:1;min-width:0;font:400 28px/1 var(--display);letter-spacing:.02em}
+.sync{min-height:44px;padding:0 8px;border:0;background:none;color:var(--muted);font-size:13px;font-weight:500;white-space:nowrap}
+.sync.err{color:var(--danger)}
+main{flex:1;display:flex;flex-direction:column;gap:20px;padding:6px 16px calc(32px + env(safe-area-inset-bottom))}
+/* A section is a hairline box with its title on the top rule. */
+.sec{position:relative;margin-top:10px;padding-top:6px;border:1px solid var(--line)}
+.sec>h2{position:absolute;top:-10px;left:10px;max-width:calc(100% - 20px);padding:0 8px;background:var(--sec);display:flex;align-items:baseline;gap:8px;font:500 13px/20px var(--sans);color:var(--muted)}
+.sec>h2 b{color:var(--text);font-weight:600}
+.badge{padding:0 8px;background:var(--accent);color:var(--on-accent);font-size:13px;font-weight:600;line-height:20px}
+.empty{padding:18px 14px 14px;color:var(--muted)}
+/* Buttons: a solid lower layer marks something to press; pressing moves the face down onto it. */
+.btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 16px;margin-bottom:4px;border:1px solid var(--edge);background:var(--raise);color:var(--text);box-shadow:0 4px 0 var(--raise-edge);font-size:15px;font-weight:500;line-height:1.2;text-decoration:none;white-space:nowrap}
+.btn:active:not([disabled]){transform:translateY(2px);box-shadow:0 2px 0 var(--raise-edge)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent);box-shadow:0 4px 0 var(--accent-edge);font-weight:600}
+.btn.primary:active:not([disabled]){box-shadow:0 2px 0 var(--accent-edge)}
+.btn[disabled]{opacity:.5;cursor:default}
+.tbtn{display:inline-flex;align-items:center;min-height:44px;padding:0;border:0;background:none;color:var(--text);font-size:15px;font-weight:500;text-decoration:underline;text-underline-offset:4px}
+.actions{display:flex;flex-wrap:wrap;align-items:center;gap:4px 20px}
+.actions .btn{margin-right:-4px}
+/* Rows: one line each, a title that gives way and a small muted note. */
+.sec>:not(h2)+.item{border-top:1px solid var(--line)}
+.item{display:flex;align-items:center;gap:12px;width:100%;min-height:44px;padding:6px 14px;border:0;background:none;color:var(--text);text-align:left}
+.ttl{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500}
+.open>.ttl{white-space:normal;overflow-wrap:anywhere}
+.tag{margin-left:8px;font-size:13px;font-weight:400;color:var(--muted)}
+.meta{flex:none;font-size:13px;color:var(--muted);white-space:nowrap}
+.meta.attn{color:var(--attn);font-weight:500}.meta.bad{color:var(--danger);font-weight:500}
+.more .ttl{font-size:13px;color:var(--muted)}
+.chev{color:var(--muted);transform:rotate(-90deg);transition:transform .15s}
+.open>.chev{transform:none}
+@media (prefers-reduced-motion:reduce){.chev,.toast{transition:none}}
+.body{padding:2px 14px 14px;display:flex;flex-direction:column;gap:12px}
+.txt{white-space:pre-wrap;overflow-wrap:anywhere}
+.hint{font-size:13px;color:var(--muted)}
+.hint.attn{color:var(--attn)}
+.foot{padding:10px 14px 12px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:2px}
+.acts{display:flex;flex-wrap:wrap;align-items:center;gap:4px 20px;padding:10px 14px 8px;border-top:1px solid var(--line)}
+.acts .btn{margin-right:-4px}
+.banner{border:1px solid var(--line);padding:10px 14px;display:flex;flex-direction:column;gap:2px}
+.banner.danger{border-color:var(--danger);color:var(--danger);font-weight:500}
+.banner.danger p+p{font-weight:400}
+.banner.err{border-color:var(--attn);color:var(--attn);font-weight:500}
+label{display:block;margin-bottom:6px;font-size:13px;color:var(--muted)}
+input,textarea{width:100%;min-height:48px;padding:0 12px;border:1px solid var(--edge);background:var(--field);font-size:16px}
+textarea{min-height:88px;padding:10px 12px;resize:vertical;line-height:1.4}
+/* The dial is three text tabs with a rule under the chosen one. */
+.seg{display:flex;gap:24px;padding:12px 14px 0}
+.seg button{min-height:44px;padding:0;border:0;border-bottom:2px solid transparent;background:none;color:var(--muted);font-size:15px;font-weight:500;text-transform:capitalize}
+.seg button[aria-pressed=true]{color:var(--text);border-bottom-color:var(--text)}
+.grid,.lower,.side{display:flex;flex-direction:column;gap:20px}
+.side{gap:12px}.note{padding:8px 14px 12px}
+.layer{position:fixed;inset:0;z-index:20;display:flex;align-items:flex-end;justify-content:center;background:var(--scrim)}
+.sheet{--sec:var(--raise);width:100%;max-width:560px;max-height:92dvh;overflow:auto;padding:16px 16px calc(24px + env(safe-area-inset-bottom));background:var(--raise);border:1px solid var(--line);border-bottom:0;display:flex;flex-direction:column;gap:16px}
+.sheet h2{font:400 28px/1.05 var(--display);letter-spacing:.02em}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);width:max-content;max-width:90%;padding:12px 16px;background:var(--text);color:var(--bg);font-weight:500;text-align:center;z-index:30}
+@media (hover:hover){.item:hover .ttl,.tbtn:hover{text-decoration:underline;text-underline-offset:4px}.sync:hover{color:var(--text)}}
+@media (min-width:900px){
+  .app{max-width:1240px}
+  header.top{padding:16px 24px 8px 32px}
+  main{padding:6px 32px 48px}
+  .grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:32px;align-items:start}
+  .lower{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:32px;align-items:start}
+  .layer{align-items:center}
+  .sheet{border-bottom:1px solid var(--line);padding:20px 24px 24px}
+}
+@media (min-width:900px) and (pointer:fine){
+  .item{min-height:40px}.btn,.tbtn,.sync,.seg button{min-height:40px}
+  input,textarea{font-size:14px}input{min-height:40px}
+}
+</style>
+</head>
+<body>
+<div id="app" class="app"></div>
+<script>
+'use strict';
+var VERSION = '1.2.0';
+var S = { conn: load('hq.conn'), board: load('hq.board'), at: load('hq.at') || '', open: {}, draft: {}, sheet: null, busy: false, err: '', toast: '', demo: false };
+var toastTimer = 0;
+
+function load(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } }
+function save(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+function safeUrl(u) { return /^https?:\/\//i.test(String(u || '')) ? String(u) : ''; }
+var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+// Times arrive as text in the sheet's own time zone ("2026-01-05 09:00"), so they are shown as written.
+function when(t) {
+  var m = /^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}:\d{2}))?/.exec(String(t || ''));
+  if (!m) return String(t || '');
+  var day = m[1] + '-' + m[2] + '-' + m[3];
+  if (S.board && day === S.board.today && m[4]) return m[4];
+  return Number(m[3]) + ' ' + MONTHS[Number(m[2]) - 1] + (m[4] ? ' ' + m[4] : '');
+}
+function minutesBetween(a, b) {
+  function ms(t) { var m = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})/.exec(String(t || '')); return m ? Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]) : NaN; }
+  return (ms(b) - ms(a)) / 60000;
+}
+var CHEV = '<svg class="chev" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 6l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+/* ---------- talking to the sheet ---------- */
+
+function call(action, extra) {
+  if (S.demo) return Promise.resolve(demoCall(action, extra || {}));
+  var body = Object.assign({ key: S.conn.key, action: action }, extra || {});
+  // Sent as text/plain so the browser makes no preflight request, which an Apps Script web app cannot answer.
+  // A request that hangs is cut off after 30 seconds, so the app goes offline and its buttons come back.
+  var ctl = new AbortController(), timer = setTimeout(function () { ctl.abort(); }, 30000);
+  return fetch(S.conn.url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body), redirect: 'follow', signal: ctl.signal })
+    .then(function (r) { return r.json(); })
+    .then(function (j) { if (!j.ok) { var e = new Error(j.error || 'The sheet refused the request'); e.auth = !!j.auth; e.fromSheet = true; throw e; } return j.data; })
+    .finally(function () { clearTimeout(timer); });
+}
+function took(board) {
+  S.board = board; S.err = '';
+  var d = new Date();
+  S.at = ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
+  if (!S.demo) { save('hq.board', board); save('hq.at', S.at); }
+}
+function sync() {
+  if ((!S.conn && !S.demo) || S.busy) return;
+  S.busy = true; render();
+  call('board').then(took).catch(function (e) { S.err = e.auth ? 'The connection code was refused.' : e.fromSheet ? 'The sheet is busy. Trying again shortly.' : 'Offline. Showing the last copy.'; if (e.fromSheet && !e.auth) setTimeout(sync, 20000); })
+    .then(function () { S.busy = false; render(); });
+}
+function send(action, extra, done, draftKey) {
+  if (S.busy) return;
+  S.busy = true; render();
+  call(action, extra).then(function (b) { took(b); delete S.draft[draftKey]; toast(done); }).catch(function (e) { toast(e.message || 'That did not go through.'); })
+    .then(function () { S.busy = false; render(); });
+}
+function toast(text) { S.toast = text; clearTimeout(toastTimer); toastTimer = setTimeout(function () { S.toast = ''; render(); }, 3500); }
+
+/* ---------- drawing ---------- */
+
+function row(id, title, meta, cls) {
+  var on = !!S.open[id];
+  return '<button class="item' + (on ? ' open' : '') + (cls ? ' ' + cls : '') + '" data-a="toggle" data-id="' + esc(id) + '" aria-expanded="' + on + '"><span class="ttl">' + title + '</span>'
+    + (meta ? '<span class="meta' + (meta[1] ? ' ' + meta[1] : '') + '">' + esc(meta[0]) + '</span>' : '') + CHEV + '</button>';
+}
+function needsHtml(b) {
+  var list = b.needs || [];
+  var h = '<section class="sec" aria-labelledby="h-needs"><h2 id="h-needs">Needs you' + (list.length ? '<span class="badge">' + list.length + '</span>' : '') + '</h2>';
+  if (!list.length) return h + '<p class="empty">No decision is waiting on you.</p></section>';
+  list.forEach(function (n) {
+    var id = 'need:' + n.id;
+    h += row(id, esc(n.subject), [n.from + (n.due ? ' · due ' + when(n.due) : '')]);
+    if (S.open[id]) {
+      var link = safeUrl(n.link);
+      h += '<div class="body"><p class="txt">' + esc(n.brief) + '</p>'
+        + (n.trust === 'untrusted' ? '<p class="hint attn">Part of this came from an email, a web page or someone else\'s document.</p>' : '')
+        + (link ? '<a class="tbtn" href="' + esc(link) + '" target="_blank" rel="noopener">Open the source</a>' : '')
+        + '<div><label for="n' + esc(n.id) + '">Note for ' + esc(n.from) + ' (optional)</label><textarea id="n' + esc(n.id) + '" data-note="' + esc(n.id) + '" maxlength="1000"></textarea></div>'
+        + '<div class="actions"><button class="btn primary" data-a="reply" data-id="' + esc(n.id) + '" data-state="done"' + (S.busy ? ' disabled' : '') + '>Approve</button>'
+        + '<button class="btn" data-a="reply" data-id="' + esc(n.id) + '" data-state="declined"' + (S.busy ? ' disabled' : '') + '>Decline</button></div></div>';
+    }
+  });
+  return h + '</section>';
+}
+function reportHtml(r) {
+  var id = 'rep:' + r.id;
+  return row(id, esc(r.subject), [(r.needs ? 'needs you · ' : '') + when(r.time), r.needs ? 'attn' : '']) + (S.open[id] ? '<div class="body"><p class="txt">' + esc(r.brief) + '</p></div>' : '');
+}
+function personHtml(p, i) {
+  var h = '<section class="sec" aria-labelledby="h-' + esc(p.role) + '"><h2 id="h-' + esc(p.role) + '"><b>' + esc(p.name) + '</b>' + esc(p.label || p.role) + '</h2>';
+  var first = p.reports[0];
+  if (first && S.open['rep:' + first.id] === undefined && i === 0) S.open['rep:' + first.id] = true; // the first card's newest report starts open
+  if (!first) h += '<p class="empty">No report yet.' + (p.lastSeen ? ' Last posted ' + esc(when(p.lastSeen)) + '.' : '') + '</p>';
+  else h += reportHtml(first);
+  if (p.reports.length > 1) {
+    var mid = 'more:' + p.role;
+    h += row(mid, 'Earlier reports', [String(p.reports.length - 1)], 'more');
+    if (S.open[mid]) h += p.reports.slice(1).map(reportHtml).join('');
+  }
+  if (p.queue.length) {
+    var qid = 'q:' + p.role;
+    h += row(qid, p.queue.length + ' waiting for ' + esc(p.name));
+    if (S.open[qid]) h += '<div class="body">' + p.queue.map(function (q) { return '<div><p><b>' + esc(q.subject) + '</b></p><p class="hint">From ' + esc(q.from) + ' · ' + esc(when(q.time)) + '</p><p class="txt">' + esc(q.brief) + '</p></div>'; }).join('') + '</div>';
+  }
+  var room = safeUrl(p.room) || 'https://claude.ai/new?q=' + encodeURIComponent(p.name + ', ');
+  var desk = safeUrl(p.desk);
+  return h + '<div class="acts"><a class="btn primary" href="' + esc(room) + '" target="_blank" rel="noopener">' + (safeUrl(p.room) ? 'Open room' : 'Open chat') + '</a>'
+    + '<button class="tbtn" data-a="note" data-role="' + esc(p.role) + '">Leave a note</button>'
+    + (desk ? '<a class="tbtn" href="' + esc(desk) + '" target="_blank" rel="noopener">Desk</a>' : '') + '</div></section>';
+}
+function runsHtml(b) {
+  var h = '<section class="sec" aria-labelledby="h-runs"><h2 id="h-runs">Runs today</h2>', quiet = { off: 0, other: 0 }, shown = 0;
+  (b.runs || []).forEach(function (r) {
+    var m = r.status === 'ok' ? ['reported ' + when(r.at), ''] : r.status === 'late' ? ['did not report by ' + r.dueBy, 'bad'] : r.status === 'due' ? ['due by ' + r.dueBy, ''] : null;
+    if (!m) { quiet[r.status === 'off' ? 'off' : 'other']++; return; }
+    shown++;
+    h += '<div class="item"><span class="ttl">' + esc(r.run) + '<span class="tag">' + esc(r.name) + '</span></span><span class="meta ' + m[1] + '">' + esc(m[0]) + '</span></div>';
+  });
+  if (!shown) h += '<p class="empty">' + ((b.runs || []).length ? 'No run is due today.' : 'The Expected tab lists no runs.') + '</p>';
+  var notes = [b.watchdog.lastCheck ? 'Checked ' + when(b.watchdog.lastCheck) : 'Not checked yet'];
+  if (quiet.other) notes.push(quiet.other + ' not scheduled today');
+  if (quiet.off) notes.push(quiet.off + ' not watched');
+  return h + '<div class="foot"><p class="hint">' + esc(notes.join(' · ')) + '</p>' + (b.watchdog.hasTopic ? (b.watchdog.alertError ? '<p class="hint attn">The last phone alert failed (' + esc(b.watchdog.alertError) + '). In the sheet, use Team HQ, then Send a test alert.</p>' : '') : '<p class="hint attn">Phone alerts are off: no alert topic is set in the sheet.</p>') + '</div></section>';
+}
+function bannerHtml(b) {
+  var lines = [];
+  var late = (b.watchdog.late || []).map(function (x) { return x.run + (x.date === b.today ? '' : ' (yesterday)'); });
+  (b.runs || []).forEach(function (r) { if (r.status === 'late' && late.indexOf(r.run) < 0) late.push(r.run); });
+  if (late.length) lines.push('<p>' + esc(late.length === 1 ? late[0] + ' did not report.' : late.length + ' runs did not report: ' + late.join(', ') + '.') + '</p>');
+  if (b.watchdog.lastCheck && minutesBetween(b.watchdog.lastCheck, b.now) > 150) lines.push('<p>The hourly check last ran ' + esc(when(b.watchdog.lastCheck)) + '. In the sheet, use Team HQ, then Set up or repair.</p>');
+  return lines.length ? '<div class="banner danger" role="status">' + lines.join('') + '</div>' : '';
+}
+function sheetHtml() {
+  var s = S.sheet;
+  if (!s) return '';
+  var inner;
+  if (s.kind === 'note') {
+    var p = (S.board.people || []).filter(function (x) { return x.role === s.role; })[0] || { name: s.role };
+    inner = '<h2 id="sheet-t">Note for ' + esc(p.name) + '</h2><label for="noteText" style="margin:0">' + esc(p.name) + ' reads it at the start of the next live session.</label>'
+      + '<textarea id="noteText" maxlength="2000"></textarea>'
+      + '<div class="actions"><button class="btn primary" data-a="sendNote"' + (S.busy ? ' disabled' : '') + '>Send</button><button class="tbtn" data-a="close">Cancel</button></div>';
+  } else {
+    inner = '<h2 id="sheet-t">Connection</h2><label for="connText" style="margin:0">Paste the connection code from the sheet: the web app address, then #, then the key. In the sheet it is under Team HQ, then Show connection code.</label>'
+      + '<input type="text" id="connText" autocomplete="off" autocapitalize="off" spellcheck="false" value="' + (S.conn ? esc(S.conn.url + '#' + S.conn.key) : '') + '">'
+      + '<div class="actions"><button class="btn primary" data-a="saveConn">Save</button>'
+      + (S.conn ? '<button class="tbtn" data-a="forget">Disconnect</button>' : '<button class="tbtn" data-a="demo">See sample data</button>')
+      + '<button class="tbtn" data-a="close">Close</button></div><p class="hint">Version ' + VERSION + (S.board ? ' · sheet script ' + esc(S.board.version) : '') + '</p>';
+  }
+  return '<div class="layer" data-a="scrim"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-t">' + inner + '</div></div>';
+}
+// A redraw replaces every element, so keyboard focus is put back on the same control.
+function focusKey(el) {
+  if (!el || !el.dataset || !el.dataset.a) return '';
+  return '[data-a="' + el.dataset.a + '"]' + ['id', 'role', 'v', 'state'].filter(function (k) { return el.dataset[k]; }).map(function (k) { return '[data-' + k + '="' + CSS.escape(el.dataset[k]) + '"]'; }).join('');
+}
+function render() {
+  var b = S.board, ae = document.activeElement;
+  // A field in use is never redrawn under the typist.
+  if (ae && (ae.tagName === 'TEXTAREA' || ae.tagName === 'INPUT') && document.getElementById('app').contains(ae) && render.drawn) { render.again = true; return; }
+  var stat = S.busy ? 'Syncing' : S.err ? 'Offline' : S.demo ? 'Sample data' : S.conn ? (S.at ? 'Synced ' + S.at : 'Sync') : 'Connect';
+  var keep = (!S.sheet && S.back) || focusKey(ae); if (!S.sheet) S.back = '';
+  var bg = S.sheet ? ' inert' : '';
+  var h = '<header class="top"' + bg + '><h1>Team HQ</h1><button class="sync' + (S.err ? ' err' : '') + '" data-a="status">' + esc(stat) + '</button></header><main' + bg + '>';
+  if (!b) {
+    h += '<section class="sec" aria-label="Welcome"><p class="empty">Team HQ shows what each assistant last reported, what is waiting on you, and whether today\'s scheduled runs happened. Connect it to your Team Board sheet to begin.</p>'
+      + '<div class="acts"><button class="btn primary" data-a="status">Connect</button><button class="tbtn" data-a="demo">See sample data</button></div></section>';
+  } else {
+    h += (S.err ? '<div class="banner err" role="status">' + esc(S.err) + '</div>' : '') + bannerHtml(b) + needsHtml(b)
+      + '<div class="grid">' + b.people.map(personHtml).join('') + '</div>'
+      + '<div class="lower">' + runsHtml(b) + '<div class="side"><section class="sec" aria-labelledby="h-dial"><h2 id="h-dial">Dial</h2><div class="seg" role="group" aria-labelledby="h-dial">'
+      + (b.dials && b.dials.length ? b.dials : [b.dial]).map(function (d) { return '<button data-a="dial" data-v="' + esc(d) + '" aria-pressed="' + (b.dial === d) + '">' + esc(d) + '</button>'; }).join('')
+      + '</div><p class="hint note">How much the team may notify you.</p></section>'
+      + (safeUrl(b.taskApp) ? '<a class="tbtn" href="' + esc(safeUrl(b.taskApp)) + '" target="_blank" rel="noopener">Open the task list</a>' : '') + '</div></div>';
+  }
+  h += '</main>' + sheetHtml() + (S.toast ? '<div class="toast" role="status">' + esc(S.toast) + '</div>' : '');
+  var main = document.querySelector('main'), top = main ? window.scrollY : 0;
+  document.getElementById('app').innerHTML = h;
+  if (top) window.scrollTo(0, top);
+  render.drawn = true; render.again = false;
+  // Drafts live in S.draft, so a redraw never loses what was typed.
+  [].forEach.call(document.querySelectorAll('[data-note]'), function (t) { t.value = S.draft['n:' + t.dataset.note] || ''; });
+  var nt = document.getElementById('noteText'); if (nt && S.sheet) nt.value = S.draft['note:' + S.sheet.role] || '';
+  var f = document.getElementById('noteText') || document.getElementById('connText');
+  if (f && S.sheet && !S.sheet.focused) { S.sheet.focused = true; f.focus(); }
+  var o = keep && document.querySelector(keep);
+  if (o && !(f && S.sheet)) o.focus();
+}
+
+/* ---------- actions ---------- */
+
+document.addEventListener('click', function (e) {
+  var el = e.target.closest('[data-a]');
+  if (!el) return;
+  var a = el.dataset.a;
+  if (a === 'scrim') { if (e.target === el) { S.sheet = null; blurThenRender(); } return; }
+  if (a === 'toggle') { S.open[el.dataset.id] = !S.open[el.dataset.id]; blurThenRender(); }
+  else if (a === 'status') { if (S.conn && !S.demo && !S.err) sync(); else { S.sheet = { kind: 'conn' }; S.back = '[data-a="status"]'; render(); } }
+  else if (a === 'close') { S.sheet = null; blurThenRender(); }
+  else if (a === 'demo') { S.demo = true; S.sheet = null; S.board = null; blurThenRender(); sync(); }
+  else if (a === 'saveConn') {
+    var raw = document.getElementById('connText').value.trim(), i = raw.lastIndexOf('#');
+    var url = i > 0 ? raw.slice(0, i).trim() : '', key = i > 0 ? raw.slice(i + 1).trim() : '';
+    if (!/^https:\/\/script\.google\.com\/.+\/exec$/.test(url) || !/^[A-Za-z0-9]{16,64}$/.test(key)) { toast('That does not look like a connection code.'); blurThenRender(); return; }
+    S.conn = { url: url, key: key }; save('hq.conn', S.conn); S.demo = false; S.sheet = null; S.err = ''; blurThenRender(); sync();
+  }
+  else if (a === 'forget') { S.conn = null; S.board = null; S.at = ''; ['hq.conn', 'hq.board', 'hq.at'].forEach(function (k) { try { localStorage.removeItem(k); } catch (x) {} }); S.sheet = null; blurThenRender(); }
+  else if (a === 'note') { S.sheet = { kind: 'note', role: el.dataset.role }; S.back = '[data-a="note"][data-role="' + el.dataset.role + '"]'; render(); }
+  else if (a === 'sendNote') {
+    var role = S.sheet.role, text = (S.draft['note:' + role] || '').trim();
+    if (!text) { toast('Write the note first.'); return; }
+    S.sheet = null; blurThenRender();
+    send('note', { role: role, text: text }, 'Note left.', 'note:' + role);
+  }
+  else if (a === 'reply') {
+    var key = 'n:' + el.dataset.id;
+    blurThenRender();
+    send('reply', { re: el.dataset.id, state: el.dataset.state, note: (S.draft[key] || '').trim() }, el.dataset.state === 'done' ? 'Approved.' : 'Declined.', key);
+  }
+  else if (a === 'dial') { if (S.board.dial !== el.dataset.v) send('dial', { value: el.dataset.v }, 'Dial set to ' + el.dataset.v + '.'); }
+});
+document.addEventListener('input', function (e) {
+  var t = e.target;
+  if (t.dataset && t.dataset.note) S.draft['n:' + t.dataset.note] = t.value;
+  else if (t.id === 'noteText' && S.sheet) S.draft['note:' + S.sheet.role] = t.value;
+});
+// A tap on a button first blurs the textarea; the deferred redraw waits until the tap is over, so the button is not replaced under the finger.
+var tapping = false;
+document.addEventListener('pointerdown', function () { tapping = true; });
+['pointerup', 'pointercancel'].forEach(function (n) { document.addEventListener(n, function () { setTimeout(function () { tapping = false; if (render.again) render(); }, 300); }); });
+function blurThenRender() { if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); render(); }
+document.addEventListener('focusout', function () { setTimeout(function () { if (render.again && !tapping) render(); }, 0); });
+document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && S.sheet) { S.sheet = null; blurThenRender(); } });
+document.addEventListener('visibilitychange', function () { if (!document.hidden) sync(); });
+setInterval(function () { if (!document.hidden) sync(); }, 5 * 60 * 1000);
+
+/* ---------- placeholder sample data, for a first look and for tests ---------- */
+
+var DEMO = null;
+function demoBoard() {
+  var d = new Date(), p = function (n) { return ('0' + n).slice(-2); };
+  var today = d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+  return { version: VERSION, now: today + ' 09:40', today: today, dial: 'mode 2', dials: ['mode 1', 'mode 2', 'mode 3'], owner: 'Owner', taskApp: '',
+    people: [
+      { role: 'A', name: 'Assistant A', label: 'Role A', room: '', desk: '', lastSeen: today + ' 08:31', queue: [{ id: 'C-1', time: today + ' 08:50', kind: 'request', from: 'Assistant C', subject: 'Request 1', brief: 'Text of request 1.' }],
+        reports: [{ id: 'A-1', time: today + ' 08:31', subject: 'Report 1', needs: true, brief: 'Line 1 of report 1.\nLine 2 of report 1.\nLine 3 of report 1.' }, { id: 'A-0', time: '2026-01-05 08:31', subject: 'Report 0', needs: false, brief: 'Text of report 0.' }] },
+      { role: 'B', name: 'Assistant B', label: 'Role B', room: '', desk: '', lastSeen: today + ' 09:15', queue: [], reports: [{ id: 'B-1', time: '2026-01-02 16:00', subject: 'Report 2', needs: false, brief: 'Line 1 of report 2.\nLine 2 of report 2.' }] },
+      { role: 'C', name: 'Assistant C', label: 'Role C', room: '', desk: '', lastSeen: today + ' 08:50', queue: [], reports: [] }
+    ],
+    needs: [{ id: 'B-2', from: 'Assistant B', role: 'B', time: today + ' 09:15', kind: 'request', subject: 'Request 2', brief: 'Text of request 2. Nothing has been sent.', due: today + ' 17:00', trust: 'team', link: '' }],
+    runs: [{ run: 'Run 1', role: 'A', name: 'Assistant A', days: 'Daily', dueBy: '09:00', scheduled: '08:30', status: 'ok', at: today + ' 08:31' }, { run: 'Run 2', role: 'C', name: 'Assistant C', days: 'Daily', dueBy: '09:15', scheduled: '09:00', status: 'late', at: '' }, { run: 'Run 3', role: 'C', name: 'Assistant C', days: 'Daily', dueBy: '20:00', scheduled: '19:00', status: 'due', at: '' }, { run: 'Run 4', role: 'B', name: 'Assistant B', days: 'Sat', dueBy: '16:00', scheduled: '15:30', status: 'not today', at: '' }],
+    watchdog: { lastCheck: today + ' 09:10', late: [{ date: today, run: 'Run 2' }], hasTopic: true } };
+}
+function demoCall(action, x) {
+  DEMO = DEMO || demoBoard();
+  if (action === 'reply') DEMO.needs = DEMO.needs.filter(function (n) { return n.id !== x.re; });
+  if (action === 'dial') DEMO.dial = x.value;
+  if (action === 'note') DEMO.people.forEach(function (p) { if (p.role === x.role) p.queue.push({ id: 'H-' + Date.now(), time: DEMO.now, kind: 'fyi', from: DEMO.owner, subject: x.text.split('\n')[0].slice(0, 80), brief: x.text }); });
+  return JSON.parse(JSON.stringify(DEMO));
+}
+
+if (location.hash === '#demo') S.demo = true, S.board = null;
+render();
+sync();
+if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(function () {});
+</script>
+</body>
+</html>
