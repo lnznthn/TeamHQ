@@ -1,9 +1,9 @@
 // Service worker: keeps the app's own files on the device so it opens offline.
 // The page is network-first (3-second budget, then the cached copy), so any launch with signal runs the newest version.
 // Fonts, icons and the manifest are cache-first. Requests to the sheet are never cached here.
-const CACHE = 'teamhq-v1.3.0';
+const CACHE = 'teamhq-v1.4.0';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icons/icon-180.png', './icons/icon-192.png', './icons/icon-512.png',
-  './fonts/bebas-neue-latin-400-normal.woff2', './fonts/geist-sans-latin-400-normal.woff2', './fonts/geist-sans-latin-500-normal.woff2', './fonts/geist-sans-latin-600-normal.woff2'];
+  './fonts/inter-latin-400-normal.woff2', './fonts/inter-latin-500-normal.woff2', './fonts/inter-latin-600-normal.woff2', './fonts/inter-latin-700-normal.woff2', './fonts/space-grotesk-latin-700-normal.woff2'];
 
 self.addEventListener('install', e => {
   // cache: 'reload' skips the browser's HTTP cache, which GitHub Pages lets hold files for 10 minutes

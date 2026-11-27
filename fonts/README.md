@@ -2,9 +2,11 @@
 
 These files are served with the app so text looks the same offline.
 
-| File | Typeface | Source package | Licence |
+| Files | Family | Source package | Licence |
 | --- | --- | --- | --- |
-| `bebas-neue-latin-400-normal.woff2` | Bebas Neue 400 | `@fontsource/bebas-neue` 5.3.0 | SIL Open Font License 1.1 |
-| `geist-sans-latin-400-normal.woff2`, `-500-`, `-600-` | Geist 400, 500, 600 | `@fontsource/geist-sans` 5.3.0 | SIL Open Font License 1.1 |
+| `inter-latin-400-normal.woff2`, `-500-`, `-600-`, `-700-` | Inter | `@fontsource/inter` 5.3.0 | SIL Open Font License 1.1 |
+| `space-grotesk-latin-700-normal.woff2` | Space Grotesk | `@fontsource/space-grotesk` 5.3.0 | SIL Open Font License 1.1 |
 
-Each is the latin subset, unchanged from the package. The licence text is at https://openfontlicense.org. Bebas Neue is copyright 2019 The Bebas Neue Project Authors; Geist is copyright 2023 Vercel, made in collaboration with basement.studio.
+Each is the latin subset, unchanged from the package.
+
+The licence text, under the two projects' copyright lines, is in `OFL.txt`.

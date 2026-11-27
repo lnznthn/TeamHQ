@@ -3,7 +3,16 @@ const { chromium } = require('playwright');
 const path = require('path'), http = require('http'), fs = require('fs'), assert = require('assert');
 const root = path.join(__dirname, '..');
 const types = { '.html': 'text/html', '.js': 'text/javascript', '.png': 'image/png', '.woff2': 'font/woff2', '.webmanifest': 'application/manifest+json' };
+// Hash of the shared block: from the first marker's opening /* to the end marker's closing */, nothing after.
+const sharedHash = (html) => { const m = '/* end shared look */', a = html.indexOf('/* Shared look 1'), b = html.indexOf(m) + m.length; return require('crypto').createHash('sha256').update(html.slice(a, b)).digest('hex').slice(0, 16); };
 (async () => {
+  const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+  assert.strictEqual(sharedHash(html), '33c0af2999cecd8b', 'shared look block');
+  // Every font the page names is in the offline file list, and every file in that list exists.
+  const shell0 = /const SHELL = (\[[^;]*\]);/.exec(fs.readFileSync(path.join(root, 'sw.js'), 'utf8')), listed = shell0 ? eval(shell0[1]) : [];
+  const fonts = [...html.matchAll(/url\((fonts\/[^)]+)\)/g)].map(m => './' + m[1]);
+  assert.ok(fonts.length === 5 && fonts.every(f => listed.includes(f)), 'every font in the page is in the offline file list: ' + fonts.filter(f => !listed.includes(f)));
+  assert.deepStrictEqual(listed.filter(f => !fs.existsSync(path.join(root, f.replace(/\/$/, '/index.html')))), [], 'every file in the offline file list exists');
   // Stand-ins for the two apps the shell frames, served from memory: one text field each, noting the resume signals and keys they get and whether the field lost focus while its tab was still shown.
   const standIn = name => '<!doctype html><title>' + name + '</title><body><input id="f"><script>window.seen = 0; window.keys = ""; document.addEventListener("visibilitychange", () => window.seen++); document.addEventListener("keydown", e => window.keys += e.key); f.addEventListener("blur", () => window.shownAtBlur = frameElement.classList.contains("on"));</scr' + 'ipt>';
   const server = http.createServer((req, res) => {
@@ -71,15 +80,16 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.png': 'image/p
     assert.deepStrictEqual(small, [], 'control sizes');
     // Colour pairs from the tokens: text needs 4.5:1, borders and focus rings 3:1.
     const ratios = await page.evaluate(() => {
-      const css = n => { const e = document.createElement('i'); e.style.color = 'var(--' + n + ')'; document.body.appendChild(e); const c = getComputedStyle(e).color.match(/[\d.]+/g).map(Number); e.remove(); return c; };
+      const css = n => { if (!getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim()) throw new Error('empty token --' + n); const e = document.createElement('i'); e.style.color = 'var(--' + n + ')'; document.body.appendChild(e); const c = getComputedStyle(e).color.match(/[\d.]+/g).map(Number); e.remove(); return c; };
       const lum = c => { const [r, g, b] = c.slice(0, 3).map(x => { x /= 255; return x <= .03928 ? x / 12.92 : Math.pow((x + .055) / 1.055, 2.4); }); return .2126 * r + .7152 * g + .0722 * b; };
       const ratio = (a, b) => { const x = lum(css(a)), y = lum(css(b)); return (Math.max(x, y) + .05) / (Math.min(x, y) + .05); };
-      const text = [['text', 'bg'], ['muted', 'bg'], ['muted', 'raise'], ['attn', 'bg'], ['danger', 'bg'], ['on-accent', 'accent'], ['text', 'field'], ['text', 'raise']];
-      const ui = [['edge', 'bg'], ['edge', 'field'], ['accent-edge', 'bg'], ['text', 'bg']];
+      const text = [['text', 'bg'], ['muted', 'bg'], ['muted', 'raise'], ['attn', 'bg'], ['danger', 'bg'], ['on-accent', 'accent-fill'], ['text', 'field'], ['text', 'raise'], ['accent', 'bg'], ['accent', 'field'], ['on-sel', 'sel'], ['ink', 'well'], ['ok', 'bg'], ['on-inv', 'danger']];
+      const ui = [['edge', 'bg'], ['edge', 'field'], ['accent-fill', 'bg'], ['text', 'bg'], ['sel', 'well']];
       return { text: text.map(p => [p.join('/'), ratio(...p)]), ui: ui.map(p => [p.join('/'), ratio(...p)]) };
     });
     ratios.text.forEach(r => assert.ok(r[1] >= 4.5, v.name + ' text contrast ' + r));
     ratios.ui.forEach(r => assert.ok(r[1] >= 3, v.name + ' control contrast ' + r));
+    assert.strictEqual(await page.evaluate(() => getComputedStyle(document.body).boxSizing), 'border-box', v.name + ' the rule after the shared block still applies');
     console.log(v.name, 'text', ratios.text.map(r => r[0] + ' ' + r[1].toFixed(2)).join(', '), '| ui', ratios.ui.map(r => r[0] + ' ' + r[1].toFixed(2)).join(', '));
     await shot('-end');
     // A tab's frame fills the window under the strip.
@@ -127,8 +137,34 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.png': 'image/p
   await shell.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
   e = await edges();
   assert.ok(await shell.evaluate(() => scrollY > 0) && e.head === e.strip, 'scrolled to the end, the header stays under the strip');
-  // A dialog asked for while an HQ field has focus is drawn only when the field loses it. Leaving HQ first must not draw it behind the tab.
   await shell.locator('[data-a="toggle"][data-id^="need:"]').first().click();
+  // The look on a phone with a notch, in both themes: the strip's chosen tab, the band over the home bar, the Dial and the fields.
+  const look3 = () => shell.evaluate(() => {
+    const rgb = c => c.match(/[\d.]+/g).slice(0, 3).map(Number);
+    const lum = c => { const [r, g, b] = rgb(c).map(x => { x /= 255; return x <= .03928 ? x / 12.92 : Math.pow((x + .055) / 1.055, 2.4); }); return .2126 * r + .7152 * g + .0722 * b; };
+    const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + .05) / (Math.min(x, y) + .05); };
+    const cs = (el, pseudo) => getComputedStyle(el, pseudo), strip = cs(document.querySelector('.strip')).backgroundColor;
+    const on = cs(document.querySelector('.strip [aria-current=page]')), off = [...document.querySelectorAll('.strip button:not([aria-current])')].map(b => ratio(cs(b).color, strip));
+    const probe = document.createElement('i'); probe.style.color = 'var(--surface)'; document.body.appendChild(probe); const surface = cs(probe).color; probe.remove();
+    const band = document.querySelector('iframe.on') ? cs(document.querySelector('.frames'), '::after') : null, dial = document.querySelector('[data-a="dial"][aria-pressed="true"]');
+    return { rule: on.borderBottomWidth, same: on.color === on.borderBottomColor, on: ratio(on.color, strip), off: Math.min(...off),
+      band: band && [band.height, band.backgroundColor === surface, band.visibility], dial: dial && [cs(dial).backgroundColor, cs(dial).color],
+      fields: [...document.querySelectorAll('input,textarea')].map(f => parseFloat(cs(f).fontSize)) };
+  });
+  for (const scheme of ['light', 'dark']) {
+    await shell.emulateMedia({ colorScheme: scheme });
+    let l = await look3();
+    assert.ok(l.rule === '3px' && l.same && l.on >= 4.5 && l.off >= 4.5, scheme + ': the chosen tab is one colour for its text and its 3 px rule, and every tab reads against the strip ' + JSON.stringify(l));
+    assert.ok(l.fields.length && l.fields.every(n => n >= 16), scheme + ': every field is at least 16 px on touch ' + l.fields);
+    if (scheme === 'dark') assert.deepStrictEqual(l.dial, ['rgb(43, 102, 246)', 'rgb(255, 255, 255)'], 'in dark mode the chosen Dial option is the blue block with white text');
+    await tabTo('docket');
+    l = await look3();
+    assert.deepStrictEqual(l.band, ['34px', true, 'visible'], scheme + ': with a tab open, the band over the home bar is 34 px of the surface colour');
+    assert.ok(l.rule === '3px' && l.same && l.on >= 4.5 && l.off >= 4.5, scheme + ': the same holds with the Docket tab chosen ' + JSON.stringify(l));
+    await tabTo('hq');
+  }
+  await shell.emulateMedia({ colorScheme: 'light' });
+  // A dialog asked for while an HQ field has focus is drawn only when the field loses it. Leaving HQ first must not draw it behind the tab.
   await shell.evaluate(() => { document.querySelector('[data-note]').focus(); document.querySelector('[data-a="note"]').click(); document.querySelector('.strip [data-v="docket"]').click(); });
   await shell.waitForTimeout(500);
   assert.ok(await shell.evaluate(() => !document.querySelector('.strip').inert && !document.querySelector('.sheet')), 'a dialog not yet drawn is dropped when HQ is left, so the strip stays usable');

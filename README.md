@@ -64,4 +64,10 @@ node test/backend.test.js   # the Apps Script code against in-memory stand-ins f
 node test/e2e.js            # the app in Chrome with its sample data (needs Playwright and Chrome)
 ```
 
-Fonts: Geist and Bebas Neue, SIL Open Font License 1.1 (see `fonts/README.md`).
+### The shared look
+
+Team HQ, Docket and Ledger share one look. Its fonts, colours, sizes, spacing and corner radii are one block of CSS that opens `<style>` in each app's `index.html`, from `/* Shared look 1 … */` to `/* end shared look */`, and the text of that block is identical in all three. A change to it is made in all three repos in the same round. `test/e2e.js` checks the first 16 characters of the block's SHA-256, so a copy that has drifted fails the run. A short `:root` rule after the block maps Team HQ's own names onto the shared ones and holds `--strip`, the height of the tab strip.
+
+The same run checks the colour pairs the app uses for contrast in both themes (text at 4.5:1, borders and selected states at 3:1) and stops if a token it names is not set, and it checks that every font the page names is in the service worker's offline file list.
+
+Fonts: Inter and Space Grotesk, SIL Open Font License 1.1 (see `fonts/README.md`; the licence text is in `fonts/OFL.txt`).
